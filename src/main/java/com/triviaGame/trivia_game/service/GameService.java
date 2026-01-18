@@ -5,6 +5,7 @@ import com.triviaGame.trivia_game.model.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 public class GameService {
 
@@ -26,19 +27,13 @@ public class GameService {
             Player player = new Player();
             player.setId(playerId);
             player.setName(playerName);
+            player.setToken(UUID.randomUUID().toString());
             player.setScore(0);
             player.setHasCorrectlyAnswered(false);
 
             game.getPlayers().add(player);
 
-            return new PlayerJoinedSnapshot(playerId, playerName);
-        }
-    }
-
-    public GameSnapshot getGameState() {
-        synchronized (game.getLock()) {
-            return new GameSnapshot(game.getGameState(), game.getQuestionState(),
-                                    game.getCurrentQuestionIndex());
+            return new PlayerJoinedSnapshot(playerId, playerName, player.getToken());
         }
     }
 

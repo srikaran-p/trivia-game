@@ -3,6 +3,7 @@ package com.triviaGame.trivia_game.model.room;
 import com.triviaGame.trivia_game.model.Game;
 import com.triviaGame.trivia_game.orchestrator.GameOrchestrator;
 import com.triviaGame.trivia_game.service.GameService;
+import org.springframework.web.socket.WebSocketSession;
 
 import java.util.Map;
 import java.util.UUID;
@@ -30,5 +31,13 @@ public class RoomManager {
         }
 
         return context;
+    }
+
+    public void removeSession(WebSocketSession session) {
+        for (GameContext context : rooms.values()) {
+            if (context.removeSession(session)) {
+                return;
+            }
+        }
     }
 }

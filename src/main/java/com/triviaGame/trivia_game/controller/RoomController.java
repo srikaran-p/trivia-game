@@ -40,7 +40,7 @@ public class RoomController {
     @GetMapping("/rooms/{roomId}/state")
     public GameSnapshot getState(@PathVariable String roomId) {
         GameContext context = roomManager.getRoom(roomId);
-        return context.getGameService().getGameState();
+        return context.buildSnapshot();
     }
 
     @GetMapping("/rooms/{roomId}/question")

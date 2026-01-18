@@ -4,6 +4,7 @@ public class Player {
 
     private Long id;
     private String name;
+    private String token;
     private boolean hasCorrectlyAnswered;
     private Long correctlyAnsweredTimestamp;
     private int score = 0;
@@ -22,6 +23,14 @@ public class Player {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 
     public boolean getHasCorrectlyAnswered() {

@@ -1,6 +1,10 @@
 package com.triviaGame.trivia_game.model;
 
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Game {
 
@@ -11,6 +15,7 @@ public class Game {
     private int currentQuestionIndex;
     private GameState gameState = GameState.WAITING;
     private QuestionState questionState;
+    private final Map<Long, WebSocketSession> sessions = new ConcurrentHashMap<>();
 
     public void startGame() {
         currentQuestionIndex = 0;
@@ -130,6 +135,36 @@ public class Game {
         }
     }
 
+    public void attachSession(Long playerId, WebSocketSession session) {
+        sessions.put(playerId, session);
+    }
+
+    public boolean detachSession(WebSocketSession session) {
+        for (Map.Entry<Long, WebSocketSession> entry : sessions.entrySet()) {
+            if (entry.getValue().equals(session)) {
+                sessions.remove(entry.getKey());
+                handlePlayerDisconnect(entry.getKey());
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void broadcast(String message) {
+        sessions.values().forEach(session -> {
+            try {
+                session.sendMessage(new TextMessage(message));
+            } catch (Exception ignored) {}
+        });
+    }
+
+    public Optional<Player> getPlayerByToken(String token) {
+        return players.stream()
+                      .filter(player -> player.getToken().equals(token))
+                      .findFirst();
+    }
+
     public GameState getGameState() {
         return gameState;
     }
@@ -157,5 +192,9 @@ public class Game {
     // Remove later
     public void setQuestions(List<Question> questions) {
         this.questions = questions;
+    }
+
+    private void handlePlayerDisconnect(Long playerId) {
+        broadcast(players.get((int) (playerId - 1)) + " left");
     }
 }
