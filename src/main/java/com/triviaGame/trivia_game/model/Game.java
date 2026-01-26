@@ -1,5 +1,6 @@
 package com.triviaGame.trivia_game.model;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -9,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Game {
 
     private final Object lock = new Object();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private List<Player> players = new ArrayList<>();
     private List<Question> questions;
@@ -151,10 +153,23 @@ public class Game {
         return false;
     }
 
-    public void broadcast(String message) {
+    public void onPlayerCorrectAnswer(Player player) {
+        WSMessage payload = null;
+        try {
+            payload = new WSMessage("PLAYER_CORRECT", Map.of("playerId", player.getId(), "playerName", player.getName()));
+            String payloadJson = objectMapper.writeValueAsString(payload);
+            broadcast(payloadJson);
+        } catch (Exception e) {
+            System.out.println("Could not send message" + payload);
+        }
+    }
+
+    private void broadcast(String message) {
         sessions.values().forEach(session -> {
             try {
-                session.sendMessage(new TextMessage(message));
+                if (session.isOpen()) {
+                    session.sendMessage(new TextMessage(message));
+                }
             } catch (Exception ignored) {}
         });
     }

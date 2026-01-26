@@ -1,7 +1,7 @@
 package com.triviaGame.trivia_game.service;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.triviaGame.trivia_game.config.WebSocketConfig;
 import com.triviaGame.trivia_game.model.GameSnapshot;
 import com.triviaGame.trivia_game.model.Player;
 import com.triviaGame.trivia_game.model.WSMessage;
@@ -53,14 +53,20 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         GameContext gameContext = roomManager.getRoom(roomId);
         GameSnapshot gameSnapshot = gameContext.buildSnapshot();
 
-        send(session, new WSMessage("SNAPSHOT", gameSnapshot));
+        send(session, new WSMessage("SNAPSHOT", Map.of("gameSnapshot", gameSnapshot)));
     }
 
     @Override
     public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
-        System.out.println("Received: " + message.getPayload());
+        WSMessage wsMessage = objectMapper.readValue((JsonParser) message.getPayload(), WSMessage.class);
 
-        session.sendMessage(new TextMessage("ACK: " + message.getPayload()));
+        switch (wsMessage.getType()) {
+            case "SUBMIT_ANSWER":
+                handleSubmitAnswer(session, wsMessage);
+                break;
+            default:
+                session.sendMessage(new TextMessage("ACK: " + message.getPayload()));
+        }
     }
 
     @Override
@@ -85,25 +91,48 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void authenticate(WebSocketSession session, String roomId, String token) throws Exception {
-        GameContext gameContext = roomManager.getRoom(roomId);
+        final GameContext gameContext = roomManager.getRoom(roomId);
 
         if (gameContext == null) {
             session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Room not found"));
             return;
         }
 
-        Optional<Player> playerOpt = gameContext.getPlayerByToken(token);
+        final Optional<Player> playerOpt = gameContext.getPlayerByToken(token);
         if (playerOpt.isEmpty()) {
             session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Player not found"));
             return;
         }
 
-        Player player = playerOpt.get();
+        final Player player = playerOpt.get();
 
         gameContext.attachSession(player.getId(), session);
+        roomManager.populateSessionMap(session, gameContext, player);
 
         System.out.println("Authenticated WS: player = " + player.getName() + ", room = " + roomId);
         send(session, "CONNECTED");
+    }
+
+    private void handleSubmitAnswer(WebSocketSession session, WSMessage wsMessage) throws Exception {
+        Player player = roomManager.getPlayerBySession(session);
+        GameContext gameContext = roomManager.getRoomBySession(session);
+
+        if (player == null) {
+            session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Player not found for the WS session"));
+            return;
+        }
+        if (gameContext == null) {
+            session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Room not found for the WS session"));
+            return;
+        }
+
+        Map<String, Object> payload = wsMessage.getPayload();
+        String answer = (String) payload.get("answer");
+
+        boolean isCorrect = gameContext.getGameService().submitAnswer(player.getId(), answer);
+        if (isCorrect) {
+            gameContext.onPlayerCorrectAnswer(player);
+        }
     }
 
     private void send(WebSocketSession session, Object payload) {

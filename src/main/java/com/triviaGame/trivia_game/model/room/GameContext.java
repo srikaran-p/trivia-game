@@ -48,6 +48,10 @@ public class GameContext {
         }
     }
 
+    public void onPlayerCorrectAnswer(Player player) {
+        game.onPlayerCorrectAnswer(player);
+    }
+
     public Optional<Player> getPlayerByToken(String token) {
         return game.getPlayerByToken(token);
     }

@@ -1,0 +1,18 @@
+Client -> Server
+{
+  "type": "SUBMIT_ANSWER",
+  "payload": {
+    "roomId": "room-1",
+    "answer": "Paris"
+  }
+}
+
+
+Server -> Client
+{
+    "type" : "PLAYER_CORRECT",
+    "payload" : {
+        "playerId" : 12,
+        "playerName" : "Alice"
+    }
+}
