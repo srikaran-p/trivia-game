@@ -16,3 +16,19 @@ Server -> Client
         "playerName" : "Alice"
     }
 }
+
+{
+    "type" : "PLAYER_JOINED",
+    "payload" : {
+        "playerId" : 12,
+        "playerName" : "Alice"
+    }
+}
+
+{
+    "type" : "PLAYER_LEFT",
+    "payload" : {
+        "playerId" : 12,
+        "playerName" : "Alice"
+    }
+}

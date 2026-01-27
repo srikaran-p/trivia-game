@@ -139,13 +139,14 @@ public class Game {
 
     public void attachSession(Long playerId, WebSocketSession session) {
         sessions.put(playerId, session);
+        broadcastPlayerConnect(playerId);
     }
 
     public boolean detachSession(WebSocketSession session) {
         for (Map.Entry<Long, WebSocketSession> entry : sessions.entrySet()) {
             if (entry.getValue().equals(session)) {
                 sessions.remove(entry.getKey());
-                handlePlayerDisconnect(entry.getKey());
+                broadcastPlayerDisconnect(entry.getKey());
                 return true;
             }
         }
@@ -157,6 +158,30 @@ public class Game {
         WSMessage payload = null;
         try {
             payload = new WSMessage("PLAYER_CORRECT", Map.of("playerId", player.getId(), "playerName", player.getName()));
+            String payloadJson = objectMapper.writeValueAsString(payload);
+            broadcast(payloadJson);
+        } catch (Exception e) {
+            System.out.println("Could not send message" + payload);
+        }
+    }
+
+    private void broadcastPlayerConnect(Long playerId) {
+        WSMessage payload = null;
+        Player player = players.get((int) (playerId - 1));
+        try {
+            payload = new WSMessage("PLAYER_JOINED", Map.of("playerId", player.getId(), "playerName", player.getName()));
+            String payloadJson = objectMapper.writeValueAsString(payload);
+            broadcast(payloadJson);
+        } catch (Exception e) {
+            System.out.println("Could not send message" + payload);
+        }
+    }
+
+    private void broadcastPlayerDisconnect(Long playerId) {
+        WSMessage payload = null;
+        Player player = players.get((int) (playerId - 1));
+        try {
+            payload = new WSMessage("PLAYER_LEFT", Map.of("playerId", player.getId(), "playerName", player.getName()));
             String payloadJson = objectMapper.writeValueAsString(payload);
             broadcast(payloadJson);
         } catch (Exception e) {
@@ -207,9 +232,5 @@ public class Game {
     // Remove later
     public void setQuestions(List<Question> questions) {
         this.questions = questions;
-    }
-
-    private void handlePlayerDisconnect(Long playerId) {
-        broadcast(players.get((int) (playerId - 1)) + " left");
     }
 }
